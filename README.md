@@ -3,7 +3,7 @@ Leveling exercises for satellite derived bathymetry on Google Earth Engine
 
 ### A quick step by step tasks to complete the generation of a depth image on code editor:
 
-<p style='color:red'> STEP 01: CREATE AREA OF INTEREST. </p>
+<span style="color: green"> STEP 01: CREATE AREA OF INTEREST. </span> 
 Tip: to generate the file in GEE reading format, an option can be using the link: https://geojson.io/#map=2/20.0/0.0
 
 ## STEP 02: CONFIGURE THE TRAINING FILE TO IMPORT INTO GEE AS ASSET. PLOT THE POINTS ON THE MAP.
