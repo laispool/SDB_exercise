@@ -1,7 +1,6 @@
-# SDB_exercise
-Leveling exercises for satellite derived bathymetry on Google Earth Engine
+# Leveling exercises for satellite derived bathymetry on Google Earth Engine
 
-### A quick step by step tasks to complete the generation of a depth image on code editor:
+#### A quick step by step tasks to complete the generation of a depth image on code editor:
 
 STEP 01: CREATE AREA OF INTEREST. 
 Tip: to generate the file in GEE reading format, an option can be using the link: https://geojson.io/#map=2/20.0/0.0
