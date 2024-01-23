@@ -1,9 +1,9 @@
 # SDB_exercise
 Leveling exercises for satellite derived bathymetry on Google Earth Engine
 
-### A quiq step by step tasks to complete the generation of a depth image on code editor:
+### A quick step by step tasks to complete the generation of a depth image on code editor:
 
-## STEP 01: CREATE AREA OF INTEREST.
+![#1589F0] STEP 01: CREATE AREA OF INTEREST. `#1589F0`
 Tip: to generate the file in GEE reading format, an option can be using the link: https://geojson.io/#map=2/20.0/0.0
 
 ## STEP 02: CONFIGURE THE TRAINING FILE TO IMPORT INTO GEE AS ASSET. PLOT THE POINTS ON THE MAP.
@@ -43,4 +43,4 @@ Tip: select only the depth band created in the previous step (depth).
 ## STEP EXTRA: SUBTRACT THE TWO RASTER LAYERS (DEPTH WITH BATHYMETRIC INVERSION AND TRAINING FILE INTERPOLATION). PLOT THE DIFFERENCE MAP WITH COLOR BAR.
 
 
-I hope you'll enjoy this quiq start --> see the resolution in the repository :)
+I hope you'll enjoy this quick start --> see the resolution in the repository :)
