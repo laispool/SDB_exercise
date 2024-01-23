@@ -1,0 +1,137 @@
+///////////////////////////////////////////////////////////
+///// Laís Pool  (lais.pool@gmail.com)                /////                       
+///// Florianopolis, 22/01/2024                       /////              
+///// Code Editor - Earth Engine                      /////                            
+///////////////////////////////////////////////////////////
+
+/////// EXERCISE 01 ////////
+var geometry = ee.Geometry.Polygon(
+        [[[-48.67576437189805, -26.112794842411088],
+          [-48.67576437189805, -26.29515363834077],
+          [-48.47045736506211, -26.29515363834077],
+          [-48.47045736506211, -26.112794842411088]]]);
+
+Map.centerObject(geometry,12); 
+Map.addLayer(geometry,{},'AOI', false); 
+
+/////// EXERCISE 02 ////////
+// First, download the training file and open as an ASSET
+var trainingData = ee.FeatureCollection('projects/ee-cassiecore1/assets/batimetria_1K_ESPG4326positivo_20052018'); //change to your path 
+print('input data', trainingData.limit(10)); 
+
+var coordinatesSystem = "EPSG:4326"; 
+var crs = ee.Projection(coordinatesSystem); 
+
+function createPoints(el) {
+  return ee.Feature(ee.Geometry.Point([el.get('X'),el.get('Y')], coordinatesSystem), 
+  {'depth': el.get('Z')});
+}
+
+trainingData = trainingData.map(createPoints);  
+Map.addLayer(trainingData, {color: '0000FF'}, 'LH'); 
+
+/////// EXERCISE 03 ////////
+var organize_data = function (image) {
+  return image.copyProperties(image,image.propertyNames()) 
+  .set({date: image.date().format('YYYY-MM-dd')}); 
+};
+
+var L5image = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2')  
+  .filter(ee.Filter.lt('CLOUD_COVER',15)) 
+  .filterDate('1988-01-01', '1988-12-31') // available date 1984 a 2012
+  .filterBounds(ee.Geometry.Point([-48.592680265452735, -26.205242112676164])) 
+  .first()
+  .clip(geometry); 
+print('Image of Landsat 5:',L5image);
+Map.addLayer(L5image, {max:30000, bands:['SR_B3', 'SR_B2', 'SR_B1']}, 'Imagem L5',false); 
+  
+var L8image = ee.ImageCollection('LANDSAT/LC08/C02/T1_L2') 
+  .filter(ee.Filter.lt('CLOUD_COVER',20))
+  .filterDate('2020-06-01', '2020-06-10') // available date 2013 to present
+  .filterBounds(ee.Geometry.Point([-48.592680265452735, -26.205242112676164]))
+  .first()
+  .clip(geometry);
+print('Image of Landsat 8:',L8image);
+Map.addLayer(L8image, {max: 30000, bands:['SR_B4', 'SR_B3', 'SR_B2']}, 'Imagem L8',false);
+  
+var L9image = ee.ImageCollection('LANDSAT/LC09/C02/T1_TOA') 
+  .filter(ee.Filter.lt('CLOUD_COVER',20))
+  .filterDate('2020-06-01', '2023-06-10') // available date 2021 to present
+  .filterBounds(ee.Geometry.Point([-48.592680265452735, -26.205242112676164]))
+  .first()
+  .clip(geometry);
+print('Image of Landsat 9:',L9image);
+Map.addLayer(L9image, {min: 0, max:0.5, bands:['B4', 'B3', 'B2']}, 'Imagem L9',false);
+    
+var S2image = ee.ImageCollection('COPERNICUS/S2_HARMONIZED')
+  .filter('CLOUDY_PIXEL_PERCENTAGE < 15') 
+  .filterDate('2018-01-01', '2018-12-31')
+  .filterBounds(ee.Geometry.Point([-48.592680265452735, -26.205242112676164]))
+  .first()
+  .clip(geometry);
+print('Image of Sentinel 2:', S2image);
+Map.addLayer(S2image, {max:10000, bands:['B4', 'B3', 'B2']}, 'Imagem S2',false); 
+
+//Download to Drive
+Export.image.toDrive({
+  image: S2image,
+  description: 'image_export',
+  region: geometry,
+  scale: 10, 
+  crs: coordinatesSystem
+});
+
+/////// EXERCISE 04 ////////
+var S2coll = ee.ImageCollection('COPERNICUS/S2_HARMONIZED')
+  //.filter('CLOUDY_PIXEL_PERCENTAGE < 15')
+  .filterDate('2018-01-01', '2018-12-31') 
+  .filterBounds(geometry) 
+  .map(function(image){return image})
+  .map(organize_data);
+var list_s2 = S2coll.aggregate_array('date');
+print('List of Sentinel 2 images:',list_s2);
+
+/////// EXERCISE 05 ////////
+print('coleção sentinel 10 primeiros', S2coll.limit(10)); 
+var img1 = ee.Image('COPERNICUS/S2_HARMONIZED/20180105T132229_20180105T132223_T22JGR').clip(geometry);
+var img2 = ee.Image('COPERNICUS/S2_HARMONIZED/20180105T132229_20180105T132223_T22JGS').clip(geometry);
+
+var image = ee.ImageCollection([img1,img2]).mosaic();
+Map.addLayer(image, {max: 20000, bands: ['B4', 'B3', 'B2']}, 'image mosaic');
+
+/////// EXERCISE 06 ////////
+var NDWIindex = function(img) {
+  var ndwi = img.normalizedDifference(['B3', 'B5']).rename('ndwi'); //Mc Feeters, 1996
+  return img.addBands([ndwi]);
+};
+var newCollection = S2coll.map(NDWIindex); 
+
+var ndwi = image.normalizedDifference(['B3', 'B5']); 
+Map.addLayer(ndwi, {min:-1, max:1, palette: ['FFFFFF','0000FF']}, 'NDWI',false);
+
+/////// EXERCISE 07 ////////
+var masked = image.updateMask(ndwi.gte(0)); //gte = greater or equal
+Map.addLayer (masked, {max: 10000, bands: ['B4', 'B3', 'B2']},'masked image'); 
+
+/////// EXERCISE 08 ////////
+var m0 = -96;
+var m1 = 95;
+var createPredictionRaster = function (img) { 
+    var sdb = (img.select('B2').multiply(1).log()).divide(img.select('B5').multiply(1).log()).rename('sdb'); 
+    img = img.addBands(sdb); 
+    var depth = sdb.multiply(ee.Number(m1)).add(ee.Number(m0)).rename('depth'); //it has to be ADDbecause M0 is negativef
+    return img.addBands(depth); 
+};
+
+var predictedSentinel = createPredictionRaster(masked);
+print('Predicted image', predictedSentinel);
+Map.addLayer(predictedSentinel.select('depth'), {min: 0, max: 30, palette:['FFFFFF','0000FF']}, 'sdb');
+
+/////// EXERCISE 09 ////////
+Export.image.toDrive({
+  image: predictedSentinel.select('depth'),
+  description: 'image_export02',
+  region: geometry,
+  scale: 10, 
+  crs: coordinatesSystem 
+});
